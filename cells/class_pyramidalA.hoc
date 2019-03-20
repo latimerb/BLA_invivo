@@ -94,6 +94,14 @@ proc append_sections() { local i
 	axon[0] all.append()
 	axon[1] all.append()
 	axon[2] all.append()
+	axon[3] all.append()
+	axon[4] all.append()
+	axon[5] all.append()
+	axon[6] all.append()
+	axon[7] all.append()
+	axon[8] all.append()
+	axon[9] all.append()
+	axon[10] all.append()
 	
 	axon[9] axon_list.append() //Only append AIS segment to receive synapses
 }
@@ -102,7 +110,6 @@ proc append_sections() { local i
 external lambda_f
 proc set_nseg() {
   	forsec all {
-		print "section: ", secname() 
 		nseg = int((L/(0.1*lambda_f(100))+.9)/2)*2 + 1  
 	}
 }

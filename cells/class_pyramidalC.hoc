@@ -91,9 +91,18 @@ proc append_sections() { local i
 	dend[1] all.append()
 	dend[1] dendrite_list.append()
 	
-	for i=0,NumAxon{
-		axon[i] all.append()
-	}
+	
+	axon[0] all.append()	
+	axon[1] all.append()
+	axon[2] all.append()
+	axon[3] all.append()
+	axon[4] all.append()
+	axon[5] all.append()
+	axon[6] all.append()
+	axon[7] all.append()
+	axon[8] all.append()
+	axon[9] all.append()
+	axon[10] all.append()
 	
 	axon[9] axon_list.append() //Only append AIS segment to receive synapses
 }
