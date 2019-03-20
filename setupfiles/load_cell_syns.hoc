@@ -1,0 +1,154 @@
+/************************************************************
+'ca1' model code repository
+Written by Marianne Bezaire, marianne.bezaire@gmail.com, www.mariannebezaire.com
+In the lab of Ivan Soltesz, www.ivansolteszlab.org
+Latest versions of this code are available online at:
+ModelDB: 
+Open Source Brain: http://www.opensourcebrain.org/projects/nc_ca1
+
+Main code file: ../main.hoc
+This file: Last updated on April 9, 2015
+
+This file loads synapse information for each cell type into the 
+CellCategoryInfo object already created for that cell type. For each
+cell type, it stores information about synapses made from other
+cells onto that cell type (incoming synapses).
+
+It reads in a particular synapse dataset as specified in the
+parameters:
+./datasets/syndata_###.dat  where ### is the parameter SynData
+************************************************************/
+
+strdef cmdstr, cmdstr1, pre_type, post_type, SecRefStr, SynType, CheckCond1, CheckCond2, Scaling
+strdef modfile,cust1,cust2,cust3,cust4,cust5
+objref f2c
+
+proc syn_cells() {localobj mySynStore
+	//print "Number of cell types:",numCellTypes, "\n"
+	for i=0, numCellTypes-1 {
+		sprint(cmdstr, "%s_idx = %g", cellType[i].cellType_string, i)
+		//print "cmdstr: ",cmdstr,"\n"
+		
+		{execute1(cmdstr)}
+		
+		cellType[i].setSynList(numCellTypes)	// For each cell type,
+												//  initialize the number
+												//  of entries into the
+												//  synapse list
+
+		for celltype = 0, numCellTypes-1 {
+			cellType[i].SynList[celltype] = new List()	// Then create a list
+														//  for each entry in
+														//  each cell type's
+														//  SynList array
+		}
+	}
+
+	// load file
+	f2c = new File()
+	sprint(cmdstr, path2SynData, SynData)
+	//print "SynData is expected to be here: ",cmdstr, "\n"
+	
+	f2c.ropen(cmdstr)						// Open the SynData file
+	synDataLines = f2c.scanvar
+	for r=0,synDataLines-1 {
+		
+		f2c.scanstr(post_type)				// Postsynaptic cell (owner of the synapse)
+		f2c.scanstr(pre_type)				// Presynaptic cell (cell innervating the synapse)
+		f2c.scanstr(SynType)				// Synapse mechanism (mod file)
+		
+		//print "post_type: ", post_type, "pre_type: ", pre_type, "\n"
+		//print "SynType: ",SynType, "\n"
+		
+		f2c.scanstr(SecRefStr)				// Section list reference for list of sections
+											//  where this synapse type, innervated by this
+											//  presynaptic cell type, can be found (on the
+											//  postsynaptic cell)
+											
+		//print "SecRefStr:", SecRefStr
+						
+		
+		f2c.scanstr(CheckCond1)				// Distance condition 1 (ex, point on cell must be
+											//  within x microns of cell soma or at least x
+											//  microns away from soma), only points on sections 
+											//  that are part of the above section list are 
+											//  subjected to this test, other sections are not 
+											//  considered.
+											
+		f2c.scanstr(CheckCond2)				// An addition distance condition; only if a point
+											//  on as section passes both of these conditions is
+											//  it added to the list as a potential location for
+											//  synapses of this type, from this presynaptic cell
+											//  type.
+											
+		if (strcmp(SynType,"Custom")==0) {
+			//print "Found a Custom SynType, saving modfile, etc."
+			f2c.scanstr(modfile)
+			f2c.scanstr(cust1)
+			f2c.scanstr(cust2)
+			f2c.scanstr(cust3)
+			f2c.scanstr(cust4)
+			f2c.scanstr(cust5)
+		} else {
+			if (strcmp(SynType,"MyExp2Sidnw")==0) {	// For nw types of synapses, which have a scaling
+				f2c.scanstr(Scaling)				//  factor, load that factor here
+			}
+
+			if (strcmp(SynType,"ExpGABAab")==0) {	// For GABA_A,B synapses, which have extra
+				tau1a = f2c.scanvar					//  components for their GABA_B portion (time
+				tau2a = f2c.scanvar					//  constants and reversal potentials), load
+				ea = f2c.scanvar					//  both the A and B components
+				tau1b = f2c.scanvar
+				tau2b = f2c.scanvar
+				eb = f2c.scanvar
+			} else {								// For all other synapse types, there is only
+				tau1 = f2c.scanvar					//  one set of time constants and reversal potential
+				tau2 = f2c.scanvar
+				efirst = f2c.scanvar
+			}
+		}
+		
+		
+		//print pre_type, " to ", post_type, " as ", SynType, " within ", SecRefStr, " between ", CheckCond1, " and ", CheckCond2, ": ", tau1, " to ", tau2, " with e=", efirst
+		sprint(cmdstr, "%s_idx", pre_type)
+		sprint(cmdstr1, "%s_idx", post_type)
+		
+		//name_declared() returns
+		// 2 if an objref
+		// 3 if a Section
+		// 4 if a strdef
+		// 5 if a scalar or double
+		// 1 otherwise
+		if ((name_declared(cmdstr) > 0) && (name_declared(cmdstr1) > 0)) {	// Create the synapse object that
+																			//  consolidates all this info
+			if (strcmp(SynType,"ExpGABAab")==0) {
+				mySynStore = new SynStore(SecRefStr,SynType,CheckCond1,CheckCond2,tau1a,tau2a,ea,tau1b,tau2b,eb)
+			} else {
+				if (strcmp(SynType,"MyExp2Sidnw")==0) {
+					mySynStore = new SynStore(SecRefStr,SynType,CheckCond1,CheckCond2,tau1,tau2,efirst,Scaling)
+				} else {
+					if (strcmp(SynType,"Custom")==0) {
+						//print "Found a custom SynType but don't know how to handle it."
+						//print "All params: ", SecRefStr," ",SynType," ",CheckCond1," ",CheckCond2," ",modfile," ",cust1, cust2, cust3, cust4, cust5
+						//mysynStore = new SynStore(SecRefStr,SynType,CheckCond1,CheckCond2,modfile,cust1,cust2,cust3,cust4,cust5)
+						quit()
+					} else {
+						mySynStore = new SynStore(SecRefStr,SynType,CheckCond1,CheckCond2,tau1,tau2,efirst)
+					}
+				}
+			}
+
+			sprint(cmdstr,"prevar = %s_idx", pre_type)
+			{execute1(cmdstr)}
+			sprint(cmdstr,"postvar = %s_idx", post_type)
+			{execute1(cmdstr)}
+			cellType[postvar].SynList[prevar].append(mySynStore)	// Append the synapse object to the list of
+																	//  synapse objects for this combination of
+																	//  presynaptic and postsynaptic cell types
+		} else {
+			print "!!CANNOT make ", pre_type, " to ", post_type, " because ", name_declared(cmdstr), " for ", cmdstr, " or ", name_declared(cmdstr1), " for ", cmdstr1
+		}
+	}
+	f2c.close()
+}
+syn_cells()

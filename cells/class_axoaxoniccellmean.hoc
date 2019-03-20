@@ -1,0 +1,592 @@
+begintemplate axoaxoniccellmean
+public init, connect_sections, size_sections, append_sections, define_synapses
+public mechinit, insert_mechs, set_biophys, get_root
+public  pre_list, connect_pre, is_art, is_connected, gid, randi
+public soma, dend, axon
+public all, basal_list, apical_list, soma_list, axon_list, dendrite_list
+public x, y, z, position, myroot, myrootsec, Vrest
+public NumSoma, NumApical, NumBasal, NumAxon, NumDend
+public gna12_ais_max, gna16_ais_max, gkv_axon, gNav_soma, gKdr_soma, gKdr_dend, gNav_dend
+public SynRecord
+
+// strings
+strdef myroot, myname
+
+// objects
+objref syn, pre_list, templist, rootlist, myrootsec, this, rr, rv, vec
+
+// external variables
+external numCellTypes, cellType, VClampVector, VirtualVClamp
+
+// create the sections[segments]
+myname = "axoaxonic"
+NumSoma=1
+NumApical=2
+NumBasal=2
+NumDend = NumApical + NumBasal
+NumAxon=11
+create soma[NumSoma], dend[NumDend], axon[NumAxon], hill[4]
+
+
+
+proc init() {
+	gid = $1
+	randi = $2
+	
+	// morphology
+	connect_sections()	// local fcn: connect soma, dendrites, axon initial segment
+	size_sections()		// local fcn: set the size dimensions of each section
+	define_shape()		// builtin fcn: fill in 3d info for sections defined by only L and diam, translate 3d points for consistency with their connections 
+  	append_sections()	// local fcn: append all sections to the section list
+	set_nseg()			// local fcn: set the number of segments in each section
+	get_root()			// local fcn: perform morphology checks
+	
+	// electrophysiology
+	mechinit(gid)			// local fcn: set values for max conductances and reversal potentials of ion channels and other ephys parameters that are subject to fitting
+	insert_mechs()		// local fcn: insert ion channels and actually set values determined in the mechinit fcn
+	set_chanparams()	// local fcn: after all channels have been inserted, then their other parameters can be set	
+
+	// synapses
+	pre_list = new List() // define a list for the presynaptic connections	
+	define_synapses($3)	// local fcn: define all possible synaptic connections received by this cell
+	//add_noise()
+}
+
+
+proc connect_sections() {
+ 	connect dend[0](0), soma(1)
+	connect dend[1](0), soma(1)
+	connect dend[2](0), soma(0)
+	connect dend[3](0), soma(0)
+	
+	//connect hill[0](0), soma[0](0.5)
+	for i = 0,2{ connect hill[i+1](0) , hill[i](1)}
+	connect axon[0](0), hill[3](1)
+	for i = 0,9{ connect axon[i+1](0) , axon[i](1)}
+	
+}
+
+proc size_sections() {
+	soma[0] {pt3dclear()
+		pt3dadd(0, 0, 0, 10) // distance from (0,0,0) = 0
+		pt3dadd(0, 10, 0, 10) // distance from (0,0,0) = 10
+		pt3dadd(0, 20, 0, 10) // distance from (0,0,0) = 20
+	}
+	dend[0] {pt3dclear()
+		pt3dadd(0, 20, 0, 3) 
+		pt3dadd(10, 69, 0, 3) 
+		pt3dadd(20, 118, 0, 3)
+	}
+	dend[1] {pt3dclear()
+		pt3dadd(0, 20, 0, 3) 
+		pt3dadd(-10, 69, 0, 3) 
+		pt3dadd(-20, 118, 0, 3)
+	}
+	dend[2] {pt3dclear()
+		pt3dadd(0, 0, 0, 3) 
+		pt3dadd(10, -49, 0, 3) 
+		pt3dadd(20, -98, 0, 3)
+	}
+	dend[3] {pt3dclear()
+		pt3dadd(0, 0, 0, 3) 
+		pt3dadd(-10, -49, 0, 3) 
+		pt3dadd(-20, -98, 0, 3)
+	}
+	// axon hillock from Hu et al. 
+	
+	hill[0] { pt3dclear()               							
+		pt3dadd(0, 0, 0, 6) 
+		pt3dadd(2.5, 0, 0, 6)
+	}
+	hill[1] { pt3dclear()               							
+		pt3dadd(2.5, 0, 0, 3.8) 
+		pt3dadd(5, 0, 0, 3.8)
+	}
+	hill[2] { pt3dclear()               							
+		pt3dadd(5, 0, 0, 2.8) 
+		pt3dadd(7.5, 0, 0, 2.8)
+	}
+	hill[3] { pt3dclear()               							
+		pt3dadd(7.5, 0, 0, 1.7) 
+		pt3dadd(10, 0, 0, 1.7)
+	}
+	
+	for i=0,9{
+		axon[i] {pt3dclear()
+			pt3dadd(5*i+10, 0, 0, 0.5) 
+			pt3dadd(2.5*(i+1)+10, 0, 0, 0.5) 
+			pt3dadd(5*(i+1)+10, 0, 0, 0.5)
+		}
+	}
+	axon[10]{pt3dclear()
+		pt3dadd(60, 0, 0, 0.5) 
+		pt3dadd(100, 0, 0, 0.5) 
+		pt3dadd(160, 0, 0, 0.5)
+	}
+	
+	
+}
+
+objref all, basal_list, apical_list, dendrite_list, soma_list, axon_list
+proc append_sections() { local i
+	objref all, basal_list, apical_list, dendrite_list, soma_list, axon_list
+
+	all = new SectionList()
+	basal_list = new SectionList()
+	apical_list = new SectionList()
+	soma_list = new SectionList()
+	axon_list = new SectionList()
+	dendrite_list = new SectionList()
+
+	soma all.append()
+	soma soma_list.append()
+	for i=0,3 {
+		dend[i] all.append()
+		dend[i] dendrite_list.append()
+	}
+
+	for i=0,1{
+		dend[i] apical_list.append()
+	}
+
+	for i=2,3 {
+		dend[i] basal_list.append()
+	}
+	
+	for i=0,NumAxon{
+		axon[i] all.append()
+	}
+	
+}
+
+
+external lambda_f
+proc set_nseg() {
+  	forsec all { nseg = int((L/(0.1*lambda_f(100))+.9)/2)*2 + 1  }
+}
+
+proc mechinit() {
+	objref rv, rr, vec
+	vec = new Vector()
+	rr = new Random($1+12)
+	rv = new Random($1+199)
+	
+	// resting membrane potential. Must lie between Na+ and K+ reversal potentials
+	Vrest = -59//rv.normal(-61.8,4) //mean, variance
+	
+	// Temperature of simulation
+	celsius = 34.0
+	
+	// Membrane resistance in ohm*cm2
+	randrm = rr.normal(6000,5760000) //std of 1000
+	if(randrm<2000){randrm = 2000} // minimum rm is 2000
+	if(randrm>10000){randrm = 10000} // maximum rm is 10000
+	
+	RmDend = randrm 
+	RmSoma = randrm
+	RmAx = 1000
+	
+	// Membrane capacitance in uF/cm2
+	CmSoma= 0.8
+	CmDend = 0.8
+
+	// Axial resistance in ohm*cm
+	RaDend = 100
+	RaSoma = 100	
+	RaAx = 100
+	
+	// Calcium concentrations in mM
+	ca_outside = 2
+	ca_inside = 5.e-6 // 50.e-6
+	catau = 10
+
+	// reversal potentials in mV
+	ekval = -90
+	enaval = 45
+	eHCNval = -30
+	ecaval = 8.314*(273.15+celsius)/(2*9.649e4)*log(ca_outside/ca_inside)*1000 // about 170, otherwise set to 130
+	
+	if (Vrest<ekval) Vrest=ekval // Cell cannot rest lower than K+ reversal potential
+	if (Vrest>enaval) Vrest=enaval // Cell cannot rest higher than Na+ reversal potential
+	eleakval = Vrest
+
+	// max ion channel conductances in mho/cm2
+	
+	dropout = rr.uniform(0,1)
+	// If this cell is in VClampVector, block its active channels.
+	// Unless it's the first one.
+	vec.where(VClampVector,"==",$1)
+	if((dropout<0 && $1!=VClampVector.x[0])){ //|| (vec.size!=0 && $1!=VClampVector.x[0])){
+		print "!!! Blocking cell ", $1
+		gNav_soma   = 0 //0.15 // soma: // 0.12 //original 0.030 to .055 ; lm: //0.5  	//original 0.015
+		gNav_dend	= 0
+		
+		gKdr_soma   = 0    // Delayed rectifier potassium
+		gKdr_dend   = 0 //0.0134
+	}else{
+		gNav_soma   = 0.192/2//0.15 // soma: // 0.12 //original 0.030 to .055 ; lm: //0.5  	//original 0.015
+		gNav_dend	= gNav_soma/4
+		
+		gKdr_soma   = 0.009/2    // Delayed rectifier potassium
+		gKdr_dend   = gKdr_soma / 4//0.0134
+	}
+	gNap_soma	= 0//0.00015
+	gNap_dend	= 0//0.00015/2
+	
+	gKvA_soma 	= 0 //0.02 //0.00015 // Proximal A-type potassium
+	gKvA_dend 	= 0
+	
+	gCavN_soma  = 0 //0.0008 //   T-type calcium
+	gCavN_dend	= 0 //
+	
+	gCavL_soma  = 0 //  L-type calcium
+	gCavL_dend  = 0 //  L-type calcium
+	//gKGroup  = 0 //0.1465/1
+	//gHCN     = 0 //0.00002 // HCN (hyperpolarization-activated cyclic nucleotide-gated channel)
+	//gKvCaB	 = 0//0.0000002 // Big potassium channel: voltage and calcium gated 
+	//gKCaS	 = 0//0.000002 //  Small potassium channel: calcium gated
+
+	// axon channels
+	gna12_ais_max = 3200   // Nav1.2 
+	gna16_ais_max = 3200   // Nav1.6
+	gkv_axon = 600
+	nash=10	
+	
+	// Hu et al. half activation voltages
+	tha_na16 = -47
+	tha_na12 = -30 
+	
+	// Half activation for somatic channels
+	mAlphV_ch_Nav = 45
+	mBetaV_ch_Nav = 17
+	hAlphV_ch_Nav = 67
+	hBetaV_Ch_Nav = 14.5
+	nAlphV_ch_Kdrfast = 20
+	nBetaV_ch_Kdrfast = 45
+}
+
+proc insert_mechs() {
+
+	forsec all {	
+		/*
+		insert ch_KvA
+		gmax_ch_KvA = gKvA		// A-type K+ conductance
+		
+		insert ch_CavN  			// N-type Ca2+ conductance
+		gmax_ch_CavN = gCavN
+		
+		insert ch_CavL
+		gmax_ch_CavL = gCavL
+		
+		insert ch_KCaS
+		gmax_ch_KCaS = gKCaS
+		
+		insert ch_KvCaB
+		gmax_ch_KvCaB = gKvCaB
+		*/
+		Ra = RaSoma
+	} 
+
+	soma {
+		//insert nainter	
+		//gnabar_nainter = gNav_soma
+		
+		//insert kdrinter
+		//gkdrbar_kdrinter = gKdr_soma
+		
+		insert ch_Nav
+		gmax_ch_Nav = gNav_soma
+		
+		//insert na12  
+		//gbar_na12 = 600 
+		
+		//insert na16
+		//gbar_na16 = 600	
+		
+		//insert kv
+		//gbar_kv = 431
+		
+		insert nap
+		gbar_nap = gNap_soma
+		
+		insert ch_Kdrfast
+		gmax_ch_Kdrfast = gKdr_soma
+		
+		insert ch_CavN  			// N-type Ca2+ conductance
+		gmax_ch_CavN = gCavN_soma
+		
+		insert ch_CavL
+		gmax_ch_CavL = gCavL_soma
+		
+		//insert natraub
+		//gbar_natraub = 187.5
+		
+		//insert kdrtraub
+		//gbar_kdrtraub = 125
+		
+		insert leakinter
+		glbar_inter_leakinter = 1/RmSoma
+		
+		el_leakinter = Vrest
+		
+		cm=CmSoma
+		ena = enaval
+		ek = ekval
+		
+		eca = ecaval
+		cao_iconc_Ca = ca_outside
+	} 
+
+	forsec dendrite_list {
+		
+		//insert nainter	
+		//gnabar_nainter = gNav_dend
+		
+		//insert kdrinter
+		//gkbar_kdrinter = gKdr_dend
+		
+		insert ch_Nav
+		gmax_ch_Nav = gNav_dend
+		
+		insert nap
+		gbar_nap = gNap_dend
+		
+		insert ch_Kdrfast
+		gmax_ch_Kdrfast = gKdr_dend
+		
+		insert ch_CavN  			// N-type Ca2+ conductance
+		gmax_ch_CavN = gCavN_dend
+		
+		insert ch_CavL
+		gmax_ch_CavL = gCavL_dend
+		
+		
+		insert leakinter
+		glbar_inter_leakinter = 1/RmDend
+		
+		el_leakinter = Vrest
+		cm=CmDend
+		
+		eca = ecaval
+		cao_iconc_Ca = ca_outside
+	}	
+	
+	for i=0,3 hill[i] {
+		insert pas
+		Ra = RaAx//50000
+		cm = 1.0
+		g_pas = 1/(RmSoma)
+		e_pas = Vrest
+		insert na12  //gbar_na12=0
+		insert na16  //gbar_na16=0
+		insert kv    //gbar_kv = 0
+		ena = enaval
+		ek = ekval
+	}
+	
+	for i=0,9 axon[i] {
+		insert pas
+		Ra = RaAx//50000
+		cm = 1.0
+		g_pas = 1/(RmSoma)
+		e_pas = Vrest
+		insert na12  //gbar_na12=0
+		insert na16  //gbar_na16=0
+		insert kv    //gbar_kv = 0
+		ena = enaval
+		ek = ekval
+		
+		insert nap
+		gbar_nap = gNap_soma
+	}
+	axon[10]{
+		insert pas
+		Ra = RaAx
+		cm = 0.2 //myelin 
+		g_pas = 1/RmAx
+		e_pas = Vrest
+		insert na12  
+		insert na16  
+		insert kv    
+		ena = enaval
+		ek = ekval
+	}
+	
+	//tha_na16 = tha_na16 - 5
+	for i=0,3{hill[0]. gbar_na12= gna12_ais_max      *	0.96	*	1}
+	axon[0]. gbar_na12= gna12_ais_max      *	0.96	*	1             								
+	axon[1]. gbar_na12= gna12_ais_max  		*	0.9	*	1                      
+	axon[2]. gbar_na12= gna12_ais_max  		*	0.75	*	1                    
+	axon[3]. gbar_na12= gna12_ais_max  		*	0.55	*	0.85              
+	axon[4]. gbar_na12= gna12_ais_max  		*	0.366985879	*	0.75  
+	axon[5]. gbar_na12= gna12_ais_max  		*	0.2	*	0.75                 
+	axon[6]. gbar_na12= gna12_ais_max  		*	0.100330761	*	0.647857143  
+	axon[7]. gbar_na12= gna12_ais_max  		*	0.011532125	*	0.520285714 
+	axon[8]. gbar_na12= gna12_ais_max  		*	0	*	0.428571429            
+	axon[9]. gbar_na12= gna12_ais_max  		*	0	*	0.342857143 
+	axon[10]. gbar_na12= gna12_ais_max  		*	0	*	0.342857143 
+		
+	for i=0,3{hill[0]. gbar_na16= gna16_ais_max      *	0.96	*	1}
+	axon[0]. gbar_na16 = gna16_ais_max	*	0.02	*	1  
+	axon[1]. gbar_na16 = gna16_ais_max	*	0.06	*	1   
+	axon[2]. gbar_na16 = gna16_ais_max	*	0.15	*	1   
+	axon[3]. gbar_na16 = gna16_ais_max	*	0.45	*	0.95   
+	axon[4]. gbar_na16 = gna16_ais_max	*	0.633014121	*	0.880142857   
+	axon[5]. gbar_na16 = gna16_ais_max	*	0.8	*	0.75   
+	axon[6]. gbar_na16 = gna16_ais_max	*	0.899669239	*	0.647857143   
+	axon[7]. gbar_na16 = gna16_ais_max	*	0.988467875	*	0.520285714   
+	axon[8]. gbar_na16 = gna16_ais_max	*	1	*	0.428571429   
+	axon[9]. gbar_na16 = gna16_ais_max	*	1	*	0.342857143  
+	axon[10]. gbar_na16 = gna16_ais_max	*	1	*	0.342857143  
+	
+	for i=0,3{hill[0]. gbar_kv = gkv_axon	*	0.5}	
+	axon[0]. gbar_kv = gkv_axon	*	0.5 
+	axon[1]. gbar_kv = gkv_axon	*	0.5 
+	axon[2]. gbar_kv = gkv_axon	*	0.6 
+	axon[3]. gbar_kv = gkv_axon	*	0.6 
+	axon[4]. gbar_kv = gkv_axon	*	0.7 
+	axon[5]. gbar_kv = gkv_axon	*	0.7 
+	axon[6]. gbar_kv = gkv_axon	*	0.8 
+	axon[7]. gbar_kv = gkv_axon	*	0.9
+	axon[8]. gbar_kv = gkv_axon	*	1
+	axon[9]. gbar_kv = gkv_axon	*	1
+	axon[10]. gbar_kv = gkv_axon	*	1
+	
+}
+
+
+objref stim,noise_syn,noise_nc
+
+
+
+proc add_noise(){
+        //Create NetStim
+	f = 10 // Hz
+	stim = new NetStim()
+	stim.interval = 1000/(f-1)
+	stim.number = 1e10
+	stim.start = 10
+	stim.noise = 0
+
+        //Create synapse
+	soma noise_syn = new MyExp2Sid(0.5)
+	noise_syn.tau1 = 0.132
+	noise_syn.tau2 = 3.74
+	noise_syn.e = 0
+
+        //Use NetCon to connect them
+	noise_nc = new NetCon(stim, noise_syn)
+	noise_nc.weight = 0.003
+}
+
+proc set_chanparams() {
+	forsec all {
+		
+		//ena = enaval
+		//ek = ekval
+		//e_ch_leak = eleakval
+		//eca = ecaval
+		//cao_iconc_Ca = ca_outside
+		
+	}
+}
+
+
+	proc connect_pre() {  // $o1 target point process, $o2 returned NetCon
+	soma[0] $o2 = new NetCon (&v(1), $o1)
+			$o2.threshold = -10
+
+	}
+
+	func is_art()  { return 0 }
+
+proc position(){ local i
+	forall {
+		for i = 0, n3d()-1 {
+			pt3dchange(i, $1-x+x3d(i), $2-y+y3d(i), $3-z+z3d(i), diam3d(i))
+		}
+	}
+	x = $1  y = $2  z = $3	
+}
+
+proc get_root() {local i localobj sref
+	rootlist = new SectionList()
+	rootlist.allroots()
+	i=0
+	forsec all {
+		sref = new SectionRef()
+		if (sref.has_parent==0) {
+			myroot = secname()
+			i=i+1
+		}
+		for(x,0) {
+			if (diam(x) <=0.01) print "WARNING: tiny diameter of ",  diam(x), " um at ", secname(), ", point ", x, "!"
+			if (diam3d(x) <=0.01) print "WARNING: tiny 3d diameter of ", diam3d(x), " um at ", secname(), ", point ", x, "!"
+		}
+		if (L <=0.001) print "WARNING: tiny length of ", L, " um at ", secname(), "!"
+	}
+	if (i>1) {
+		print "WARNING: cell ", gid, " has ", i, " root sections!"
+	}
+}
+strdef myStr
+
+
+objref newSecRef, syn, SynRecord[100]
+
+proc define_synapses() {
+	ind = $1
+	i = 0
+
+	access soma[0]
+	{distance()}
+
+	for celltype = 0, numCellTypes-1 {
+		templist = new List ()
+		for r=0, cellType[ind].SynList[celltype].count()-1 {
+			execute(cellType[ind].SynList[celltype].object(r).NewSynStr, this) // sets newSecRef
+						
+			forsec newSecRef {		
+				for (x,0) {
+					
+					execute(cellType[ind].SynList[celltype].object(r).CondStr, this)
+					 if (y==1) {
+					
+						execute(cellType[ind].SynList[celltype].object(r).SynStr, this)
+						if (cellType[ind].SynList[celltype].object(r).GABAabFlag==0) {
+							syn.tau1 = cellType[ind].SynList[celltype].object(r).tau1
+							syn.tau2 = cellType[ind].SynList[celltype].object(r).tau2
+							syn.e = cellType[ind].SynList[celltype].object(r).efirst
+							if (strcmp(cellType[ind].SynList[celltype].object(r).SynType,"MyExp2Sidnw")==0) {
+								syn.nw = cellType[ind].SynList[celltype].object(r).Scaling
+							}
+						} else {
+							syn.tau1a = cellType[ind].SynList[celltype].object(r).tau1a
+							syn.tau2a = cellType[ind].SynList[celltype].object(r).tau2a
+							syn.ea = cellType[ind].SynList[celltype].object(r).ea
+							syn.tau1b = cellType[ind].SynList[celltype].object(r).tau1b
+							syn.tau2b = cellType[ind].SynList[celltype].object(r).tau2b
+							syn.eb = cellType[ind].SynList[celltype].object(r).eb
+						}
+						syn.sid = i
+						
+						indx = VClampVector.indwhere("==",gid)
+						
+						
+						if(indx>=0){
+							SynRecord[i] = new Vector()
+							SynRecord[i].record(&syn.i)
+						}
+						
+						templist.append(syn)
+						i = i + 1
+					}
+				}
+			}
+		}
+		pre_list.append(templist)
+		findme = 1
+	}
+}
+
+endtemplate axoaxoniccellmean

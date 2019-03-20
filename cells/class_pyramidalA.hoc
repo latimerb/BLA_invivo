@@ -1,0 +1,423 @@
+begintemplate pyramidalA
+
+public init, connect_sections, size_sections, append_sections, define_synapses
+public mechinit, insert_mechs, set_biophys, get_root
+public  pre_list, connect_pre, is_art, is_connected, gid, randi
+public soma, dend, axon
+public all, soma_list, axon_list, dendrite_list
+public x, y, z, position, myroot, myrootsec, Vrest
+public NumSoma, NumDend, NumAxon
+public SynRecord
+
+// strings
+strdef myroot, myname
+
+// objects
+objref syn, pre_list, templist, rootlist, myrootsec, this, rr
+
+// external variables
+external numCellTypes, cellType, VClampVector
+
+// create the sections[segments]
+myname = "pyramidalA"
+NumSoma=1
+NumDend=2
+NumAxon=11
+
+create soma[NumSoma], dend[NumDend], axon[NumAxon]
+
+
+
+proc init() {
+	gid = $1
+	randi = $2
+	
+	// morphology
+	connect_sections()	// local fcn: connect soma, dendrites, axon initial segment
+	size_sections()		// local fcn: set the size dimensions of each section
+	define_shape()		// builtin fcn: fill in 3d info for sections defined by only L and diam, translate 3d points for consistency with their connections 
+  	append_sections()	// local fcn: append all sections to the section list
+	set_nseg()			// local fcn: set the number of segments in each section
+	get_root()			// local fcn: perform morphology checks
+
+	// electrophysiology
+	mechinit(gid)			// local fcn: set values for max conductances and reversal potentials of ion channels and other ephys parameters that are subject to fitting
+	insert_mechs()		// local fcn: insert ion channels and actually set values determined in the mechinit fcn
+	set_chanparams()	// local fcn: after all channels have been inserted, then their other parameters can be set	
+
+	// synapses
+	pre_list = new List() // define a list for the presynaptic connections	
+	define_synapses($3)	// local fcn: define all possible synaptic connections received by this cell
+	add_noise(gid)
+}
+
+
+proc connect_sections() { local i
+ 	connect dend[0](0), soma[0](1)
+	connect dend[1](0), soma[0](0)
+	
+	//axon[0:9] are the AIS, axon[10] is the axon
+	connect axon[0](0), soma[0](0.5)
+		
+	for i = 0,9{ connect axon[i+1](0) , axon[i](1)}	
+}
+
+proc size_sections() {
+	soma[0] {L = 25 diam = 24.75 nseg = 1}	
+	
+	dend[0] {diam= 3 L=270 nseg=8}
+	dend[1] {diam =5 L=555 nseg=7} 
+	
+	
+	//axon[0]	{diam = 3.8:2.4 L = 5}		// axon hillock (Hu et al. 2009)									
+	for i=0,9 axon[i] { L = 5 diam = 0.5} 	// AIS is axon[1:9]
+	axon[10] {L = 100 diam = 0.5}
+}
+
+objref all, dendrite_list, soma_list, axon_list
+proc append_sections() { local i
+	objref all, dendrite_list, soma_list, axon_list
+
+	all = new SectionList()
+	soma_list = new SectionList()
+	axon_list = new SectionList()
+	dendrite_list = new SectionList()
+
+	soma all.append()
+	soma soma_list.append()
+	
+	dend[0] all.append()
+	dend[0] dendrite_list.append()
+	dend[1] all.append()
+	dend[1] dendrite_list.append()
+	
+	axon[0] all.append()
+	axon[1] all.append()
+	axon[2] all.append()
+	
+	axon[9] axon_list.append() //Only append AIS segment to receive synapses
+}
+
+
+external lambda_f
+proc set_nseg() {
+  	forsec all {
+		print "section: ", secname() 
+		nseg = int((L/(0.1*lambda_f(100))+.9)/2)*2 + 1  
+	}
+}
+
+proc mechinit() {
+
+	objref rr
+	rr = new Random($1+12)
+	
+	// resting membrane potential. Must lie between Na+ and K+ reversal potentials
+	Vrest=-80
+	
+	// Temperature of simulation
+	celsius = 34.0
+
+	// Membrane resistance in ohm*cm2
+	RmDend = 40000 //1/0.00018
+	RmSoma = 21000 //1/0.00018
+	RmAx = 1000
+	
+	// Membrane capacitance in uF/cm2
+	CmSoma= 1.5
+	CmDend = 1.5
+
+	// Axial resistance in ohm*cm
+	RaDend= 150
+	RaSoma= 150	
+	RaAx = 150
+	
+	// Calcium concentrations in mM
+	ca_outside = 2
+	ca_inside = 5.e-6 // 50.e-6
+	catau = 10
+
+	// reversal potentials in mV
+	ekval = -90
+	enaval = 45
+	eHCNval = -30
+	ecaval = 8.314*(273.15+celsius)/(2*9.649e4)*log(ca_outside/ca_inside)*1000 // about 170, otherwise set to 130
+	
+	if (Vrest<ekval) Vrest=ekval // Cell cannot rest lower than K+ reversal potential
+	if (Vrest>enaval) Vrest=enaval // Cell cannot rest higher than Na+ reversal potential
+	eleakval = Vrest
+
+	// somatodendritic max ion channel conductances in mho/cm2
+	gna = 0.015
+	gnap = 0.000559
+	gkdr = 0.002
+	ghd = 1.5e-5
+	gca = 5.5e-4 
+	gm = 0.00224 
+	gsAHP = 0.05
+	gkap = 0.002 
+			
+	nash=10
+
+	// axon channels
+	dropout = rr.uniform(0,1)
+	//print "dropout: ", dropout
+	if(dropout<0){
+		print "dropping out cell ", $1
+		gna12_ais_max = 0   // Nav1.2 
+		gna16_ais_max = 0   // Nav1.6
+	}else{
+		gna12_ais_max = 3000   // Nav1.2 
+		gna16_ais_max = 3200   // Nav1.6
+	}
+	gkv_axon = 1000
+	nash=10
+	
+	tha_na16 = -43
+	tha_na12 = -30
+	
+}
+
+proc insert_mechs() {
+ 
+
+	soma {
+		Ra = RaSoma
+		cm=CmSoma
+		insert cadyn gcabar_cadyn = gca  eca = 120
+		insert leak el_leak= -72  glbar_leak = 1/RmSoma 
+		insert hd ghdbar_hd = ghd 
+		insert na3 sh_na3=nash ar_na3=1	gbar_na3 = 3*gna
+		insert nap gbar_nap = gnap
+		insert kdr gbar_kdr = gkdr
+		insert capool taucas = 1000  fcas_capool = 0.05 //only in dend and p_dend
+		insert sAHP gsAHPbar_sAHP = gsAHP
+		insert im gbar_im = gm
+		insert kap gkabar_kap = gkap
+	} 
+
+	dend[0] {
+		Ra = RaDend
+		cm = CmDend
+		insert cadyn gcabar_cadyn = gca eca = 120
+		insert leak el_leak = -72  glbar_leak = 1/RmDend
+		insert hd ghdbar_hd = ghd 
+		insert na3 sh_na3=nash ar_na3=1	gbar_na3 = gna
+		insert nap gbar_nap = 0  gbar_nap(1/(2*nseg)) = 0.8*gnap
+		insert kdr gbar_kdr = gkdr
+		insert capool taucas = 1000  fcas_capool = 0.05 
+		insert sAHP gsAHPbar_sAHP = 0
+		insert im gbar_im = 0 gbar_im(1/(2*nseg)) = 0.8*gm
+		insert kap gkabar_kap = 0
+	}	
+	dend[1] {
+		Ra = RaDend
+		cm = CmDend
+		insert cadyn gcabar_cadyn = gca  eca = 120
+		insert leak el_leak= -72  glbar_leak = 1/RmDend
+		insert hd ghdbar_hd = ghd
+		insert na3 sh_na3=nash ar_na3=1	gbar_na3 = gna
+		insert nap gbar_nap = 0 gbar_nap(1/(2*nseg)) = 1.0*gnap
+		insert kdr gbar_kdr = gkdr
+		insert capool taucas = 1000  fcas_capool = 0.05 
+		insert sAHP gsAHPbar_sAHP = 0
+		insert im gbar_im = 0 gbar_im(1/(2*nseg)) = 1.0*gm
+		insert kap gkabar_kap = gkap
+	}
+	
+	for i=0,9 axon[i] {
+		insert pas
+		Ra = RaAx//50000
+		cm = 0.8 
+		g_pas = 1/(RmAx+200)
+		e_pas = -70
+		insert na12  //gbar_na12=0
+		insert na16  //gbar_na16=0
+		insert kv    //gbar_kv = 0
+		ena = 45
+		ek = -90
+	}
+	axon[10]{
+		insert pas
+		Ra = RaAx
+		cm = 0.4 //myelin 
+		g_pas = 1/RmAx
+		e_pas = -70
+		insert na12  
+		insert na16  
+		insert kv    
+		ena = 45
+		ek = -90
+	}
+	
+	axon[0]. gbar_na12= gna12_ais_max      *	0.96	*	1             								
+	axon[1]. gbar_na12= gna12_ais_max  		*	0.9	*	1                      
+	axon[2]. gbar_na12= gna12_ais_max  		*	0.75	*	1                    
+	axon[3]. gbar_na12= gna12_ais_max  		*	0.55	*	0.95              
+	axon[4]. gbar_na12= gna12_ais_max  		*	0.366985879	*	0.880142857  
+	axon[5]. gbar_na12= gna12_ais_max  		*	0.2	*	0.75                 
+	axon[6]. gbar_na12= gna12_ais_max  		*	0.100330761	*	0.647857143  
+	axon[7]. gbar_na12= gna12_ais_max  		*	0.011532125	*	0.520285714 
+	axon[8]. gbar_na12= gna12_ais_max  		*	0	*	0.428571429            
+	axon[9]. gbar_na12= gna12_ais_max  		*	0	*	0.342857143 
+	axon[10]. gbar_na12= gna12_ais_max  		*	0	*	0.342857143 
+		
+	axon[0]. gbar_na16 = gna16_ais_max	*	0.04	*	1   
+	axon[1]. gbar_na16 = gna16_ais_max	*	0.1	*	1   
+	axon[2]. gbar_na16 = gna16_ais_max	*	0.25	*	1   
+	axon[3]. gbar_na16 = gna16_ais_max	*	0.45	*	0.95   
+	axon[4]. gbar_na16 = gna16_ais_max	*	0.633014121	*	0.880142857   
+	axon[5]. gbar_na16 = gna16_ais_max	*	0.8	*	0.75   
+	axon[6]. gbar_na16 = gna16_ais_max	*	0.899669239	*	0.647857143   
+	axon[7]. gbar_na16 = gna16_ais_max	*	0.988467875	*	0.520285714   
+	axon[8]. gbar_na16 = gna16_ais_max	*	1	*	0.428571429   
+	axon[9]. gbar_na16 = gna16_ais_max	*	1	*	0.342857143  
+	axon[10]. gbar_na16 = gna16_ais_max	*	1	*	0.342857143  
+				
+	axon[0]. gbar_kv = gkv_axon	*	0.2 
+	axon[1]. gbar_kv = gkv_axon	*	0.3 
+	axon[2]. gbar_kv = gkv_axon	*	0.4 
+	axon[3]. gbar_kv = gkv_axon	*	0.5 
+	axon[4]. gbar_kv = gkv_axon	*	0.6 
+	axon[5]. gbar_kv = gkv_axon	*	0.7 
+	axon[6]. gbar_kv = gkv_axon	*	0.8 
+	axon[7]. gbar_kv = gkv_axon	*	0.9
+	axon[8]. gbar_kv = gkv_axon	*	1
+	axon[9]. gbar_kv = gkv_axon	*	1
+	axon[10]. gbar_kv = gkv_axon	*	1
+	
+}
+
+proc set_chanparams() {
+	forsec all {
+		
+	}
+}
+
+
+proc connect_pre() {  // $o1 target point process, $o2 returned NetCon
+	axon[10] $o2 = new NetCon (&v(0.5), $o1)
+			$o2.threshold = -10
+
+}
+
+objref stim[100000],noise_syn[100000],noise_nc[100000],rnoise
+
+proc add_noise(){
+	rnoise = new Random($1+12)
+        //Create NetStim
+	g = $1
+	f = 0.5 + rnoise.uniform(0,1) // Hz
+	stim[g] = new NetStim()
+	stim[g].interval = 1000/f
+	stim[g].number = 1e10
+	stim[g].start = 10
+	stim[g].noise = 1
+
+        //Create synapse
+	soma noise_syn[g] = new MyExp2Sid(0.5)
+	noise_syn[g].tau1 = 0.132
+	noise_syn[g].tau2 = 3.74
+	noise_syn[g].e = 0
+
+        //Use NetCon to connect them
+	noise_nc[g] = new NetCon(stim[g], noise_syn[g])
+	noise_nc[g].weight = 0.03
+}
+
+
+func is_art()  { return 0 }
+
+proc position(){ local i
+	forall {
+		for i = 0, n3d()-1 {
+			pt3dchange(i, $1-x+x3d(i), $2-y+y3d(i), $3-z+z3d(i), diam3d(i))
+		}
+	}
+	x = $1  y = $2  z = $3	
+}
+
+proc get_root() {local i localobj sref
+	rootlist = new SectionList()
+	rootlist.allroots()
+	i=0
+	forsec all {
+		sref = new SectionRef()
+		if (sref.has_parent==0) {
+			myroot = secname()
+			i=i+1
+		}
+		for(x,0) {
+			if (diam(x) <=0.01) print "WARNING: tiny diameter of ",  diam(x), " um at ", secname(), ", point ", x, "!"
+			if (diam3d(x) <=0.01) print "WARNING: tiny 3d diameter of ", diam3d(x), " um at ", secname(), ", point ", x, "!"
+		}
+		if (L <=0.001) print "WARNING: tiny length of ", L, " um at ", secname(), "!"
+	}
+	if (i>1) {
+		print "WARNING: cell ", gid, " has ", i, " root sections!"
+	}
+}
+strdef myStr
+
+objref newSecRef, syn, SynRecord[10]
+proc define_synapses() {
+	ind = $1
+	i = 0
+
+	access soma[0]
+	{distance()}
+
+	for celltype = 0, numCellTypes-1 {
+		templist = new List ()
+		for r=0, cellType[ind].SynList[celltype].count()-1 {
+		
+			execute(cellType[ind].SynList[celltype].object(r).NewSynStr, this) // sets newSecRef
+						
+			forsec newSecRef {		
+				for (x,0) {
+					// Decides if distance is correct
+					execute(cellType[ind].SynList[celltype].object(r).CondStr, this)
+					
+					 if (y==1) {
+						// Declares new synapse
+						execute(cellType[ind].SynList[celltype].object(r).SynStr, this)
+						if (cellType[ind].SynList[celltype].object(r).GABAabFlag==0) {
+							syn.tau1 = cellType[ind].SynList[celltype].object(r).tau1
+							syn.tau2 = cellType[ind].SynList[celltype].object(r).tau2
+							syn.e = cellType[ind].SynList[celltype].object(r).efirst
+							if (strcmp(cellType[ind].SynList[celltype].object(r).SynType,"MyExp2Sidnw")==0) {
+								syn.nw = cellType[ind].SynList[celltype].object(r).Scaling
+							}
+						} else {
+							syn.tau1a = cellType[ind].SynList[celltype].object(r).tau1a
+							syn.tau2a = cellType[ind].SynList[celltype].object(r).tau2a
+							syn.ea = cellType[ind].SynList[celltype].object(r).ea
+							syn.tau1b = cellType[ind].SynList[celltype].object(r).tau1b
+							syn.tau2b = cellType[ind].SynList[celltype].object(r).tau2b
+							syn.eb = cellType[ind].SynList[celltype].object(r).eb
+						}
+						syn.sid = i
+
+						
+						indx = VClampVector.indwhere("==",gid)
+						//print "VCLAMPVECTOR!!!: ", VClampVector.printf
+						
+						if(indx>=0){
+							print "Recording synaptic current on cell", gid, "synrecord ", i
+							SynRecord[i] = new Vector()
+							SynRecord[i].record(&syn.i)
+						}
+
+
+						templist.append(syn)
+						i = i + 1
+					}
+				}
+			}
+		}
+		pre_list.append(templist)
+		findme = 1
+	}
+}
+
+endtemplate pyramidalA

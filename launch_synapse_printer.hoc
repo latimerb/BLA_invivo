@@ -1,0 +1,30 @@
+strdef current
+objref f_syncurr[4]
+
+// Whenever a cell is in voltage clamp, record both the voltage clamp current and the membrane voltage
+proc Save_SynCurr() { local z
+	if(VirtualVClamp==1){
+		//Go through all cells on this host until you find the gid in VClampVector
+		for m=0,VClampVector.size()-1{
+			if(pc.gid_exists(VClampVector.x[m])){
+				for j = 0,cells.count()-1{
+					
+					if(cells.o(j).gid==VClampVector.x[m]){
+						
+						for k=0,3{
+							f_syncurr[k] = new File()
+							sprint(current,"./results/%s/syncurrent%d_cell%d.dat", RunName, k, VClampVector.x[m]) 
+							f_syncurr[k].wopen(current)
+							cells.o(j).SynRecord[k].printf(f_syncurr[k])
+							f_syncurr[k].close()
+						}
+					}
+
+				}
+			
+			}
+		}
+	}
+}
+
+Save_SynCurr()

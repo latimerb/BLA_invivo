@@ -1,0 +1,16 @@
+{load_file("nrngui.hoc")}
+
+{load_file("netparmpi.hoc")}
+
+objref pnm, pc
+pnm = new ParallelNetManager(20)	// Set up a parallel net manager for all the cells
+pc = pnm.pc
+
+
+{printf("Hello world from processor %d\n",pc.id)}
+
+strdef direx
+if(pc.id==0){
+	{system("uuidgen", direx)}
+	print "direx: ", direx
+}

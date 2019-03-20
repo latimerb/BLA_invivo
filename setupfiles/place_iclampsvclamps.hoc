@@ -1,0 +1,138 @@
+// Written by Ben Latimer 2018 for use with large scale network model.
+
+// This function is used to place current and voltage clamps on cells in the network.
+// The user provides the cell gids in the "parameters.hoc" file under the variable
+// called VClampCells. 
+
+
+objref vclamp[VClampVector.size()], vclamp2[1000], ChnCurrent, fih, fih2, CurrentRec[VClampVector.size()], VoltageRec[IClampVector.size()+1]
+strdef cmd, cmd2
+
+proc delaysec() {
+	vclamp.rs = 1e9
+	sprint(cmd,"vclamp[%d].rs = 1",$2)
+	cvode.event($1, cmd)
+}
+
+proc place_iclampsvclamps(){
+
+// The first is a special case since we want to both voltage clamp and current clamp it.
+
+	if (pc.gid_exists(VClampVector.x[0])) {
+
+		//print "cells list length: ", cells.count(), "\n"
+		for i=0,cells.count()-1{		
+			if (cells.o(i).gid == VClampVector.x[0]){
+				print "IClamp on cell", cells.o(i).gid, "\n"
+				
+				access cells.o(i).soma
+				ChnCurrent = new IClamp(0.1)
+				ChnCurrent.dur = 1 //8
+				ChnCurrent.del = 100 // this ensures the cell spikes at 100 ms
+				ChnCurrent.amp = 0//pyr0.03////0.05
+				
+				print "VClamp on cell ", cells.o(i).gid, "\n"
+				
+				access cells.o(i).soma
+				vclamp[0] = new SEClamp(0.5)
+				vclamp[0].rs = .1 // Mohm:series resistance should be much smaller than input resistance of the cell
+				vclamp[0].dur1 = 0
+				vclamp[0].amp1 = -70
+				vclamp[0].dur2 = tstop
+				vclamp[0].amp2 = -70
+				vclamp[0].dur3 = 0
+				vclamp[0].amp3 = -70
+			
+		
+				// If we want the vclamp to wait until after the current is injected to turn on
+				START_VCLAMP = 102.8
+				fih = new FInitializeHandler("delaysec(START_VCLAMP,0)")
+				
+				//Record the current
+				CurrentRec[0] = new Vector()
+				CurrentRec[0].record(&vclamp[0].i)
+				
+				print "recording voltage on cell ", cells.o(i).gid
+				access cells.o(i).soma
+				VoltageRec[0] = new Vector()
+				VoltageRec[0].record(&v(0.5))
+			}
+		}
+	}
+	
+	// Record voltage on cells in IClampVector
+	if (IClampVector.size()>0){
+		for j = 0,IClampVector.size()-1{
+			if (pc.gid_exists(IClampVector.x[j])) {
+				//print "cells list length: ", cells.count(), "\n"
+				for i=0,cells.count()-1{		
+					if (cells.o(i).gid == IClampVector.x[j]){
+						//Record the voltage
+						//print "Recording voltage on cell ", cells.o(i).gid, "VoltageRec: ", j+1, "\n"
+						access cells.o(i).soma
+						VoltageRec[j+1] = new Vector()
+						VoltageRec[j+1].record(&v(0.5))
+					}
+				}
+			}
+		}
+	}
+	
+	// Place vclamp on rest of cells in VClampVector
+	if (VClampVector.size()>1 && VirtualVClamp==0){
+		for j = 1,VClampVector.size()-1{
+			if (pc.gid_exists(VClampVector.x[j])) {
+				//print "cells list length: ", cells.count(), "\n"
+				for i=0,cells.count()-1{		
+					if (cells.o(i).gid == VClampVector.x[j]){
+						print "VClamp on cell ", cells.o(i).gid, "\n"
+						access cells.o(i).soma
+						vclamp[j] = new SEClamp(0.5)
+						vclamp[j].rs = 2 // Mohm:series resistance should be much smaller than input resistance of the cell
+						vclamp[j].dur1 = 0
+						vclamp[j].amp1 = -70
+						vclamp[j].dur2 = tstop
+						vclamp[j].amp2 = -70
+						vclamp[j].dur3 = 0
+						vclamp[j].amp3 = -70	
+						
+						// If we want the vclamp to wait until after the current is injected to turn on
+						//START_VCLAMP = 100
+						//sprint(cmd,"delaysec(START_VCLAMP,%d)",j)
+						//fih2 = new FInitializeHandler(cmd)	
+						
+						//Record the current
+						CurrentRec[j] = new Vector()
+						CurrentRec[j].record(&vclamp[j].i)
+					}
+				}
+			}
+		}
+	}
+	if (ShutdownFlag==1){
+		//print "radial shutdown commence!"
+		count = 0
+		for i =0,cells.count()-1{
+			//print "PC ", pc.id, "cells count: ", cells.count()	
+			//print "position: ", cells.o(i).x, cells.o(i).y, cells.o(i).z, "\n"
+			//print "init position:", RadialShutdownVec.x[0], RadialShutdownVec.x[1], RadialShutdownVec.x[2], "\n"
+			
+			if (sqrt((cells.o(i).x-RadialShutdownVec.x[0])^2+(cells.o(i).y-RadialShutdownVec.x[1])^2+(cells.o(i).z-RadialShutdownVec.x[2])^2)>300){
+				//print "silencing cell ", cells.o(i).gidi
+				access cells.o(i).soma
+				vclamp2[count] = new SEClamp(0.5)
+				vclamp2[count].rs = 2 // Mohm:series resistance should be much smaller than input resistance of the cell
+				vclamp2[count].dur1 = 0
+				vclamp2[count].amp1 = -70
+				vclamp2[count].dur2 = tstop
+				vclamp2[count].amp2 = -70
+				vclamp2[count].dur3 = 0
+				vclamp2[count].amp3 = -70	
+				count = count+1
+			}else{
+				print "NOT silencing cell ", cells.o(i).gid		
+ 			}
+		}
+	}
+}
+place_iclampsvclamps()

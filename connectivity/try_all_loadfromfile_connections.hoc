@@ -1,0 +1,76 @@
+// This file works within the Bezaire model framework to generate connectivity from an outside text file generated in MATLAB.
+// by Ben Latimer
+
+strdef fdef
+
+// Name of file containing matrix of connectivity where rows are POSTsynaptic cells
+// Values should be TAB separated 
+// First line should be only an integer of how many cells in the network
+// First entry in lines 2 to n should be the number of numbers in that row.
+// Second entry in lines 2 to n should be the postsynaptic gid
+fdef="connections.dat"
+
+
+objref f, cell
+f=new File()
+{f.ropen(fdef)}
+
+objref v1, v_list
+
+// First line of the connections.dat file should be the total number of cells
+{numcells = f.scanvar()}
+
+// make a list to hold the post (entry 0) and presynaptic cells (entry 1-n)
+v_list = new List()
+
+// Convert connections.dat to a list of vectors
+for j=0,numcells-1{
+	v1=new Vector()
+	len = f.scanvar() //First number in each row should be number of connections (number of numbers in row)
+	for i=0,len-1{
+		v1.append(f.scanvar())
+	}
+	if (pc.gid_exists(j)){
+		v_list.append(v1)
+	}
+}
+
+
+// This for loop will iterate over the host's v_list and connect the cells
+for i=0,v_list.count-1{
+	postgid = v_list.o(i).x(0)
+	cell = pc.gid2cell(postgid)
+
+	for j=1,v_list.o(i).size-1{
+		precell = v_list.o(i).x(j)
+
+		// figure out to what precellType the cell belongs
+		begidx = 0
+		endidx = cellType[0].numCells-1
+		if(precell>=begidx && precell<=endidx){
+			precellType = 0
+		}
+		for n=1,numCellTypes-1{
+			begidx = endidx + 1
+			endidx = begidx + cellType[n].numCells-1
+			if(precell>=begidx && precell<=endidx){
+				precellType = n
+			}
+		}
+			
+		// Number of synapse types for a precell->postcell combination
+		numSynTypes = cell.pre_list.o(precellType).count()
+		
+		if(numSynTypes>0){
+			ransynlist.object(cell.randi).r.discunif(0,numSynTypes-1)
+			randSynNumber = ransynlist.object(cell.randi).repick
+			print "randSynNumber: ", randSynNumber
+			//cellType[0].numCells
+			//print pc.gid2cell(v_list.o(i).x(j))
+			thiswgt = 0.004
+			conDelay = 0.3
+			nc_append(v_list.o(i).x(j), postgid, precellType, randSynNumber, thiswgt + (v_list.o(i).x(j)+1)*1000, conDelay)
+		}
+	}
+}
+
