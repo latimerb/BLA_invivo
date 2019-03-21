@@ -6,7 +6,7 @@
 #SBATCH -A TG-DBS180005
 #SBATCH --job-name=ca1
 #SBATCH --output=ca1%j.out
-#SBATCH --time 0-00:10
+#SBATCH --time 0-00:30
 #SBATCH --qos=normal
 
 

@@ -232,7 +232,7 @@ proc setup_npole_lfp() { local i, j, k, m, n, r, h, s, avglfp, typei, gid, cellt
 			if (lfp_types[celltype].x[i] == 2) {
 			    k = (1.0/fdst)*k
 			} 
-			printf ("host %d: npole_lfp: gid = %d i = %d j = %d r = %g h = %g k = %g\n", pc.id, gid, i, j, r, h, k)
+			//printf ("host %d: npole_lfp: gid = %d i = %d j = %d r = %g h = %g k = %g\n", pc.id, gid, i, j, r, h, k)
 			lfpkmatrix[celltype].x[i][j] = k
 			
 			j = j + 1
