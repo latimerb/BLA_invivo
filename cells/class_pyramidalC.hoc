@@ -308,32 +308,32 @@ proc connect_pre() {  // $o1 target point process, $o2 returned NetCon
 
 }
 
+
 objref stim[100000],noise_syn[100000],noise_nc[100000],rnoise
 
-
 proc add_noise(){
-	rnoise = new Random($1+123)
+	rnoise = new Random($1+12)
         //Create NetStim
 	g = $1
-	f = 0.5 + rnoise.uniform(0,1) // Hz
-	stim[g] = new NetStim()
-	stim[g].interval = 1000/f
-	stim[g].number = 1e10
-	stim[g].start = 10
-	stim[g].noise = rnoise.uniform(0,1)
+	for i=1,100{
+		f = 0.5 + rnoise.uniform(0,1) // Hz
+		stim[i] = new NetStim()
+		stim[i].interval = 1000/f
+		stim[i].number = 1e10
+		stim[i].start = 10
+		stim[i].noise = 1
 
-        //Create synapse
-	soma noise_syn[g] = new MyExp2Sid(0.5)
-	noise_syn[g].tau1 = 0.132
-	noise_syn[g].tau2 = 3.74
-	noise_syn[g].e = 0
+        	//Create synapse
+		dend[0](1/i) noise_syn[i] = new MyExp2Sid(0.5)
+		noise_syn[i].tau1 = 0.132
+		noise_syn[i].tau2 = 3.74
+		noise_syn[i].e = 0
 
-        //Use NetCon to connect them
-	noise_nc[g] = new NetCon(stim[g], noise_syn[g])
-	noise_nc[g].weight = 0.03
+        	//Use NetCon to connect them
+		noise_nc[i] = new NetCon(stim[i], noise_syn[i])
+		noise_nc[i].weight = 0.0007
+	}
 }
-
-
 
 func is_art()  { return 0 }
 

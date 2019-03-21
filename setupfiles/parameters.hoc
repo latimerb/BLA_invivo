@@ -3,7 +3,7 @@ default_var("UID","5555")		// Unique ID for this simulation run
 default_var("Stimulation","spontaneous")		// Filename of the stimulation protocol used to stimulate the network
 default_var("Connectivity","try_all_randfaststimwrecip")		// Filename of the connection protocol used to connect the cells of the network
 default_var("Scale",1)		// Network scale (1:Scale)
-default_var("SimDuration",10000)		// Duration of time simulated, in milliseconds
+default_var("SimDuration",2000)		// Duration of time simulated, in milliseconds
 default_var("RandomSeeds",0)		// Method used to assign seeds to random processors
 default_var("Positioning","")		// Algorithm used to position the cells
 default_var("PrintVoltage",1)		// Flag for recording and printing intracellular voltage traces for select cells
@@ -47,9 +47,9 @@ default_var("PercentCellDeath",0)		//  Percent of cells that are killed (removed
 default_var("RandomSynWgt",2)		// >0 indicates that synapse weights should vary with the specified weight as the mean. 1: a normal distribution, 2: a lognormal distribution, 3: a uniform distribution
 default_var("synVar",0.01)		//  Fraction of the mean synapse weight that should be set as the standard deviation in the normal distribution of synapse weights for randomized synapse weights
 default_var("RecipConns",1)		// Flag for connecting reciprocally.
-default_var("VClampCells","5;8424;0;1111;2222;3333;")	// Place voltage clamp on these cells. First argument should be total number of cells. First cell in list will get voltage clamp and current clamp
+default_var("VClampCells","1;8424;")	// Place voltage clamp on these cells. First argument should be total number of cells. First cell in list will get voltage clamp and current clamp
 default_var("VirtualVClamp",0) // If this variable is 1, cells 2-N in VClampCells will NOT have an actual VClamp placed, but we will print their EPSCs and IPSCs.
-default_var("IClampCells","2;0;1;")	// Place current clamp (record somatic membrane voltage) on these cells. First argument should be total number of cells
+default_var("IClampCells","10;0;1;2;3;4;5;6;7;8;9;")	// Place current clamp (record somatic membrane voltage) on these cells. First argument should be total number of cells
 default_var("LoadPosFile",0) // Variable to load positions from file defined in /connectivity/positions.dat. Set to zero to generate online.
 default_var("RadialShutdown","8424;650;697.5;140;") // This variable should include the gid and position of the intiating chandelier
 default_var("ShutdownFlag",0) // set this to 1 to use the Radial Shutdown

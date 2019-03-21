@@ -53,7 +53,7 @@ func npole_pos_lfp() { local avglfp, vlfp, celltype, pci, gid, i, j, ex, ey, ez,
 
 			forsec cell.all {
 				if (ismembrane("extracellular")) {		
-					print "section name cell ", gid, ": ",secname() 
+					//print "section name cell ", gid, ": ",secname() 
 					j = 0
 					for (x,0) {
 						vlfp = vlfp + (i_membrane(x) * lfpkmatrix[celltype].x[i][j])
