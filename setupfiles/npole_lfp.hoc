@@ -147,7 +147,7 @@ proc setup_npole_lfp() { local i, j, k, m, n, r, h, s, avglfp, typei, gid, cellt
 	    for pcitr(&i, &typei, &gid, cellType[celltype].cellStartGid, cellType[celltype].cellEndGid) {
 		cell = pc.gid2cell(gid)
 		// Relative to the recording electrode position
-		if (sqrt((cell.x-ex)*(cell.x-ex) + (cell.y-ey)*(cell.y-ey) + (cell.z-ez)*(cell.z-ez))<MaxEDist) {
+		if (sqrt((cell.x-ex)*(cell.x-ex) + (cell.y-ey)*(cell.y-ey) + (cell.z-ez)*(cell.z-ez))<MaxEDist && sqrt((cell.x-ex)*(cell.x-ex) + (cell.y-ey)*(cell.y-ey) + (cell.z-ez)*(cell.z-ez))>MinEDist ) {
 		    lfptype = 1 // proximal cell
 		} else {
 		    myr = ranlfplist.object(i).r
