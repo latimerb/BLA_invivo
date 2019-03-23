@@ -331,7 +331,7 @@ proc add_noise(){
 
         	//Use NetCon to connect them
 		noise_nc[i] = new NetCon(stim[i], noise_syn[i])
-		noise_nc[i].weight = 0.002
+		noise_nc[i].weight = 0.001
 	}
 }
 
