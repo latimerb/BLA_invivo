@@ -49,7 +49,7 @@ proc init() {
 	// synapses
 	pre_list = new List() // define a list for the presynaptic connections	
 	define_synapses($3)	// local fcn: define all possible synaptic connections received by this cell
-	//add_noise()
+	add_noise(gid)
 }
 
 
@@ -455,28 +455,48 @@ proc insert_mechs() {
 }
 
 
-objref stim,noise_syn,noise_nc
-
-
+objref stim[100000],noise_syn[100000],noise_nc[100000],rnoise
 
 proc add_noise(){
-        //Create NetStim
-	f = 10 // Hz
-	stim = new NetStim()
-	stim.interval = 1000/(f-1)
-	stim.number = 1e10
-	stim.start = 10
-	stim.noise = 0
+        //create netstim
+	g = $1
+	for i=1,100{
+		f = 10 // hz
+		stim[i] = new netstim()
+		stim[i].interval = 1000/f
+		stim[i].number = 10e4
+		stim[i].start = 1
+		stim[i].noise = 1
 
-        //Create synapse
-	soma noise_syn = new MyExp2Sid(0.5)
-	noise_syn.tau1 = 0.132
-	noise_syn.tau2 = 3.74
-	noise_syn.e = 0
+		
+		f1 = 6 // hz
+		stim[i+100] = new netstim()
+		stim[i+100].interval = 1000/f1
+		stim[i+100].number = 60
+		stim[i+100].start = 1500
+		stim[i+100].noise = 1
 
-        //Use NetCon to connect them
-	noise_nc = new NetCon(stim, noise_syn)
-	noise_nc.weight = 0.003
+        	//create synapse
+		soma[0](1/i) noise_syn[i] = new myexp2sid(0.5)
+		noise_syn[i].tau1 = 0.132
+		noise_syn[i].tau2 = 5.74
+		noise_syn[i].e = -70
+
+        	//use netcon to connect them
+		noise_nc[i] = new netcon(stim[i], noise_syn[i])
+		noise_nc[i].weight = 0.003
+		
+				
+		dend[0](1/i) noise_syn[i+100] = new myexp2sid(0.5)
+		noise_syn[i+100].tau1 = 0.132
+		noise_syn[i+100].tau2 = 2.5
+		noise_syn[i+100].e = 0
+
+        	//use netcon to connect them
+		noise_nc[i+100] = new netcon(stim[i+100], noise_syn[i+100])
+		noise_nc[i+100].weight = 0.003
+
+	}
 }
 
 proc set_chanparams() {

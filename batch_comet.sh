@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --partition normal
+#SBATCH --partition compute
 #SBATCH --nodes=5
 #SBATCH --ntasks-per-node=20
 #SBATCH -A TG-DBS180005
