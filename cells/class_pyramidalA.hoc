@@ -237,7 +237,8 @@ proc insert_mechs() {
 		Ra = RaAx//50000
 		cm = 0.8 
 		g_pas = 1/(RmAx+200)
-		e_pas = -70
+		e_pas = -70	
+		//insert nap
 		insert na12  //gbar_na12=0
 		insert na16  //gbar_na16=0
 		insert kv    //gbar_kv = 0
@@ -279,6 +280,7 @@ proc insert_mechs() {
 	axon[7]. gbar_na16 = gna16_ais_max	*	0.988467875	*	0.520285714   
 	axon[8]. gbar_na16 = gna16_ais_max	*	1	*	0.428571429   
 	axon[9]. gbar_na16 = gna16_ais_max	*	1	*	0.342857143  
+
 	axon[10]. gbar_na16 = gna16_ais_max	*	1	*	0.342857143  
 				
 	axon[0]. gbar_kv = gkv_axon	*	0.2 

@@ -237,7 +237,8 @@ proc insert_mechs() {
 		Ra = RaAx//50000
 		cm = 1.0 
 		g_pas = 1/(RmAx+200)
-		e_pas = -70
+		e_pas = -70	
+		//insert nap
 		insert na12  //gbar_na12=0
 		insert na16  //gbar_na16=0
 		insert kv    //gbar_kv = 0
@@ -280,7 +281,7 @@ proc insert_mechs() {
 	axon[8]. gbar_na16 = gna16_ais_max	*	1	*	0.428571429   
 	axon[9]. gbar_na16 = gna16_ais_max	*	1	*	0.342857143  
 	axon[10]. gbar_na16 = gna16_ais_max	*	1	*	0.342857143  
-				
+	
 	axon[0]. gbar_kv = gkv_axon	*	0.2 
 	axon[1]. gbar_kv = gkv_axon	*	0.3 
 	axon[2]. gbar_kv = gkv_axon	*	0.4 
@@ -316,9 +317,9 @@ proc add_noise(){
         //Create NetStim
 	g = $1
 	for i=1,100{
-		f = 0.5 + rnoise.uniform(0,1) // Hz
+		f = rnoise.uniform(0,1) // Hz
 		stim[i] = new NetStim()
-		stim[i].interval = 1000/f
+		stim[i].interval = 4000/f
 		stim[i].number = 1e10
 		stim[i].start = 10
 		stim[i].noise = 1
@@ -331,7 +332,7 @@ proc add_noise(){
 
         	//Use NetCon to connect them
 		noise_nc[i] = new NetCon(stim[i], noise_syn[i])
-		noise_nc[i].weight = 0.001
+		noise_nc[i].weight = 0.0015
 	}
 }
 

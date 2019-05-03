@@ -3,7 +3,7 @@ default_var("UID","5555")		// Unique ID for this simulation run
 default_var("Stimulation","spontaneous")		// Filename of the stimulation protocol used to stimulate the network
 default_var("Connectivity","try_all_randfaststimwrecip")		// Filename of the connection protocol used to connect the cells of the network
 default_var("Scale",1)		// Network scale (1:Scale)
-default_var("SimDuration",500)		// Duration of time simulated, in milliseconds
+default_var("SimDuration",2000)		// Duration of time simulated, in milliseconds
 default_var("RandomSeeds",0)		// Method used to assign seeds to random processors
 default_var("Positioning","")		// Algorithm used to position the cells
 default_var("PrintVoltage",1)		// Flag for recording and printing intracellular voltage traces for select cells
@@ -30,14 +30,14 @@ default_var("DegreeStim",0.65)		// Degree of stimulation; meaning depends on Sti
 default_var("CatFlag",1)		// Whether to concatenate and remove trace connection files
 default_var("RandomSeedsConn",0)		// Starting highIndex used by connectivity streams
 default_var("RandomSeedsStim",0)		// Starting highIndex used by stimulation streams
-default_var("AxConVel",250)		// Axonal conduction delay in um/ms, usually 250-500. Set to 0 to use constant value of 1.4 ms
+default_var("AxConVel",500)		// Axonal conduction delay in um/ms, usually 250-500. Set to 0 to use constant value of 1.4 ms
 default_var("myConDelay",0.8)		// Axonal conduction delay (~1.2)
 default_var("NumTracesPyr",1)	// The maximum number of pyramidal cells to record intracellularly
 default_var("axonRecFlag",1)		// Flag to record from axon (For pyramidal cells only as of 5/29/18)
 default_var("MaxEDist",1000)		// The maximum distance in microns away from an electrode point that LFP contributions from cells should be included
 default_var("MinEDist",50)		// The minimum distance in microns away from an electrode point that LFP cont...
 default_var("lfp_dt",.05)		// The time step for recording the LFP trace
-default_var("ElectrodePoint","100;100;100")		// X,Y,Z coordinates of LFP recording electrode, in microns, separated by semicolon
+default_var("ElectrodePoint","700;700;100")		// X,Y,Z coordinates of LFP recording electrode, in microns, separated by semicolon
 default_var("ComputeNpoleLFP",1)		// Compute the LFP using all or a fraction of compartments from nearby pyramidal cells
 default_var("ComputeDipoleLFP",0)		// Compute the LFP using two compartments (dipole) of nearby pyramidal cells
 default_var("LFPCellTypes","pyramidalcellA;pyramidalcellC;pvbasketcell;axoaxoniccell")		// semicolon separated list of cell types to record LFP from (give full name of celltype) -- ONLY WORKS FOR NPOLE!
@@ -50,7 +50,7 @@ default_var("synVar",0.01)		//  Fraction of the mean synapse weight that should 
 default_var("RecipConns",1)		// Flag for connecting reciprocally.
 default_var("VClampCells","1;8424;")	// Place voltage clamp on these cells. First argument should be total number of cells. First cell in list will get voltage clamp and current clamp
 default_var("VirtualVClamp",0) // If this variable is 1, cells 2-N in VClampCells will NOT have an actual VClamp placed, but we will print their EPSCs and IPSCs.
-default_var("IClampCells","10;0;1;2;3;4;5;6;7;8;9;")	// Place current clamp (record somatic membrane voltage) on these cells. First argument should be total number of cells
+default_var("IClampCells","8;0;1;2;3;4;5000;6000;7000;")	// Place current clamp (record somatic membrane voltage) on these cells. First argument should be total number of cells
 default_var("LoadPosFile",0) // Variable to load positions from file defined in /connectivity/positions.dat. Set to zero to generate online.
 default_var("RadialShutdown","8424;650;697.5;140;") // This variable should include the gid and position of the intiating chandelier
 default_var("ShutdownFlag",0) // set this to 1 to use the Radial Shutdown

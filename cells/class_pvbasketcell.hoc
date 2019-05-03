@@ -44,7 +44,7 @@ proc init() {
 	// synapses
 	pre_list = new List() // define a list for the presynaptic connections
 	define_synapses($3)	// local fcn: define all possible synaptic connections received by this cell
-	add_noise()
+	//add_noise(gid)
 }
 
 proc connect_sections() { local i
@@ -132,16 +132,16 @@ proc mechinit() {
 	randrm = rr.normal(6000,5760000) //std of 2400
 	if(randrm<2000){randrm = 2000} // minimum rm is 2000
 	
-	RmDend = randrm //1/0.00018 
-	RmSoma = randrm //1/0.00018 
+	RmDend = 20000 //1/0.00018 
+	RmSoma = 20000 //1/0.00018 
 
 	// Membrane capacitance in uF/cm2
-	CmSoma= 1.4
-	CmDend = 1.4
+	CmSoma= 1
+	CmDend = 1
 
 	// Axial resistance in ohm*cm
-	RaDend= 100
-	RaSoma= 100	
+	RaDend= 150
+	RaSoma= 150*22.5	
 	
 	// Calcium concentrations in mM
 	ca_outside = 2
@@ -165,15 +165,15 @@ proc mechinit() {
 		gNav_soma = 0
 		gNav_dend = 0
 	}else{
-		gNav_soma   =   0.156//0.15 // soma: // 0.12 //original 0.030 to .055 ; lm: //0.5  	//original 0.015
-		gNav_dend	=   0.00782 //0.102
+		gNav_soma   =   0.035//0.15 // soma: // 0.12 //original 0.030 to .055 ; lm: //0.5  	//original 0.015
+		gNav_dend	=   0.01 //0.102
 	}
 
 	gNap_soma	= 0
 	gNap_dend	= 0
 	
-	gKdr_soma   = 0.0103 // Delayed rectifier potassium
-	gKdr_dend   = 0.00277
+	gKdr_soma   = 0.035 // Delayed rectifier potassium
+	gKdr_dend   = 0.003
 	
 	gKvA_soma 	= 0 //0.02 //0.00015 // Proximal A-type potassium
 	gKvA_dend 	= 0
@@ -301,26 +301,30 @@ proc connect_pre() {  // $o1 target point process, $o2 returned NetCon
 
 }
 
-objref stim,noise_syn,noise_nc
+objref stim[100000],noise_syn[100000],noise_nc[100000],rnoise
 
 proc add_noise(){
+	rnoise = new Random($1+12)
         //Create NetStim
-	f = 10 // Hz
-	stim = new NetStim()
-	stim.interval = 1000/(f-1)
-	stim.number = 1e10
-	stim.start = 10
-	stim.noise = 0
+	g = $1
+	for i=1,100{
+		f = 5 + rnoise.uniform(0,1) // Hz
+		stim[i] = new NetStim()
+		stim[i].interval = 1000/f
+		stim[i].number = 1e10
+		stim[i].start = 10
+		stim[i].noise = 1
 
-        //Create synapse
-	soma noise_syn = new MyExp2Sid(0.5)
-	noise_syn.tau1 = 0.132
-	noise_syn.tau2 = 3.74
-	noise_syn.e = 0
+        	//Create synapse
+		dend[0](1/i) noise_syn[i] = new MyExp2Sid(0.5)
+		noise_syn[i].tau1 = 0.132
+		noise_syn[i].tau2 = 3.74
+		noise_syn[i].e = 0
 
-        //Use NetCon to connect them
-	noise_nc = new NetCon(stim, noise_syn)
-	noise_nc.weight = 0.003
+        	//Use NetCon to connect them
+		noise_nc[i] = new NetCon(stim[i], noise_syn[i])
+		noise_nc[i].weight = 0.002
+	}
 }
 
 

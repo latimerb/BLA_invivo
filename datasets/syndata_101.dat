@@ -1,13 +1,13 @@
 12
-axoaxoniccell pyramidalcellA MyExp2Sid soma_list distance(x)>-1 distance(x)<200 0.132 2.5 0.0   
-pvbasketcell pyramidalcellA MyExp2Sid soma_list distance(x)>-1 distance(x)<200 0.132 2.5 0.0
-axoaxoniccell pyramidalcellC MyExp2Sid soma_list distance(x)>-1 distance(x)<200 0.132 2.5 0.0   
-pvbasketcell pyramidalcellC MyExp2Sid soma_list distance(x)>-1 distance(x)<200 0.132 2.5 0.0      
-pyramidalcellA axoaxoniccell MyExp2Sid axon_list distance(x)>-1 distance(x)<200 0.132 3.74 -40.0      
-pyramidalcellA pvbasketcell MyExp2Sid soma_list distance(x)>-1 distance(x)<200 0.132 3.74 -75.0
-pyramidalcellC axoaxoniccell MyExp2Sid axon_list distance(x)>-1 distance(x)<200 0.132 3.74 -40.0      
-pyramidalcellC pvbasketcell MyExp2Sid soma_list distance(x)>-1 distance(x)<200 0.132 3.74 -75.0
-axoaxoniccell pvbasketcell ExpGABAab soma_list distance(x)>-1 distance(x)<200 0.132 3.74 -75.0 0.132 30.74 -75.0
-pvbasketcell pvbasketcell MyExp2Sid soma_list distance(x)>-1 distance(x)<200 0.132 3.74 -75.0
-pvbasketcell axoaxoniccell MyExp2Sid soma_list distance(x)>-1 distance(x)<200 0.132 3.74 -75.0
-axoaxoniccell axoaxoniccell MyExp2Sid soma_list distance(x)>-1 distance(x)<200 0.132 3.74 -75.0
+axoaxoniccell pyramidalcellA MyExp2Sid basal_list distance(x)>-1 distance(x)<300 0.88 2.3 0.0   
+pvbasketcell pyramidalcellA MyExp2Sid basal_list distance(x)>-1 distance(x)<300 0.69 1.83 0.0
+axoaxoniccell pyramidalcellC MyExp2Sid basal_list distance(x)>-1 distance(x)<300 0.88 2.3 0.0   
+pvbasketcell pyramidalcellC MyExp2Sid basal_list distance(x)>-1 distance(x)<300 0.69 1.83 0.0      
+pyramidalcellA axoaxoniccell MyExp2Sid axon_list distance(x)>-1 distance(x)<300 0.83 6.27 -50.0      
+pyramidalcellA pvbasketcell MyExp2Sid soma_list distance(x)>-1 distance(x)<300 0.3 7.5 -70.0
+pyramidalcellC axoaxoniccell MyExp2Sid axon_list distance(x)>-1 distance(x)<300 0.83 6.27 -50.0      
+pyramidalcellC pvbasketcell MyExp2Sid soma_list distance(x)>-1 distance(x)<300 0.3 7.5 -70.0
+axoaxoniccell pvbasketcell ExpGABAab soma_list distance(x)>-1 distance(x)<300 1.1 6.8 -70.0 0.132 30.74 -70.0
+pvbasketcell pvbasketcell MyExp2Sid soma_list distance(x)>-1 distance(x)<300 1.1 6.8 -70.0
+pvbasketcell axoaxoniccell MyExp2Sid soma_list distance(x)>-1 distance(x)<300 1.1 6.8 -70.0
+axoaxoniccell axoaxoniccell MyExp2Sid soma_list distance(x)>-1 distance(x)<300 0.132 3.74 -70.0

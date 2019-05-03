@@ -1,13 +1,13 @@
 12
-pyramidalcellA axoaxoniccell 0.000235 40.000000 1.000000
-pyramidalcellA pvbasketcell 0.002 60.000000 1.000000
-pyramidalcellC axoaxoniccell 0.000235 40.000000 1.000000
-pyramidalcellC pvbasketcell 0.002 60.000000 1.000000
-axoaxoniccell pyramidalcellA 0.003 5.00000 1.000000
-pvbasketcell pyramidalcellA 0.00800 22.000000 1.000000
-axoaxoniccell pyramidalcellC 0.003 5.00000 1.000000
-pvbasketcell pyramidalcellC 0.00800 22.000000 1.000000
-pvbasketcell pvbasketcell 0.00400 22.000000 1.000000
+pyramidalcellA axoaxoniccell 0.001 40.000000 1.000000
+pyramidalcellA pvbasketcell 0.003 100.000000 1.000000
+pyramidalcellC axoaxoniccell 0.001 40.000000 1.000000
+pyramidalcellC pvbasketcell 0.003 100.000000 1.000000
+axoaxoniccell pyramidalcellA 0.002 5.00000 1.000000
+pvbasketcell pyramidalcellA 0.00300 22.000000 1.000000
+axoaxoniccell pyramidalcellC 0.002 5.00000 1.000000
+pvbasketcell pyramidalcellC 0.00300 22.000000 1.000000
+pvbasketcell pvbasketcell 0.00100 22.000000 1.000000
 pvbasketcell axoaxoniccell 0.00400 22.000000 1.000000
-axoaxoniccell pvbasketcell 0.00000300 22.000000 1.000000
+axoaxoniccell pvbasketcell 0.00100 22.000000 1.000000
 axoaxoniccell axoaxoniccell 0.000000800 22.000000 1.000000

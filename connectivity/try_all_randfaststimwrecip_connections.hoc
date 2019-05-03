@@ -296,7 +296,7 @@ proc makeConnections () {local precellType, postcellType, precellStart, precellE
 						///// Distributions of weights are formed here ///////
 						
 						if (RandomSynWgt==2 && precellType == 2 && (postcellType == 0 || postcellType==1)) { //Chn --> Pyr
-							ranwgtlist.object(cell.randi).r.lognormal(synWeight, synWeight*synVar)	// Create a log normal distribution that will
+							ranwgtlist.object(cell.randi).r.normal(synWeight, synWeight*synVar)	// Create a log normal distribution that will
 																									//  allow the specification of a synapse weight, where the
 																									//  distribution has the specified mean and variance:
 																									//  "r.lognormal(mean, variance)", using synWeight (the specified,
@@ -402,8 +402,8 @@ proc makeConnections () {local precellType, postcellType, precellStart, precellE
 							dist_final = sqrt((xpos - cell.x)*(xpos - cell.x) + (ypos - cell.y)*(ypos - cell.y))
 							// Ben Latimer 7/30/18 -- adding additional check to make sure the cells are within the distance specifications in SynData_###.
 							// Ideally, this would be read in from the SynData_### file but I can't figure out how to do that right now.
-							//if (pc.id==0){print "WARNING: all connections limited to 200 um or less"}
-							if (dist_final < 200.0){
+							//if (pc.id==0){print "WARNING: all connections limited to 300 um or less"}
+							if (dist_final < 300.0){
 									
 								randSynNumber = ransynlist.object(cell.randi).repick	// Randomly pick a synapse type from the available synapse types
 								if (AxConVel<=0) { // AxConVel is the axonal conduction velocity in um/ms
@@ -431,14 +431,14 @@ proc makeConnections () {local precellType, postcellType, precellStart, precellE
 									
 								// Here we set the extremes of the distributions. If the max is X*mean, replace the number in the while statement with X
 								if (RandomSynWgt==2 && (precellType == 0 || precellType==1) && postcellType==2){ // Pyr -> Chn
-									while(thiswgt>2.77*synWeight || thiswgt < 0){
+									while(thiswgt>2*synWeight || thiswgt < 0){
 										thiswgt = randwgt.normal(synWeight,0.0000032)
 									}
 								}
 								
 								if (RandomSynWgt==2 && precellType==2 && (postcellType == 0 || postcellType==1)){ // Chn -> Pyr
-									while(thiswgt>1.75*synWeight || thiswgt < 0){
-										thiswgt = ranwgtlist.object(cell.randi).repick
+									while(thiswgt>2*synWeight || thiswgt < 0){
+										thiswgt = randwgt.normal(synWeight,0.0000032)
 									}
 								}
 									
@@ -479,7 +479,7 @@ proc makeConnections () {local precellType, postcellType, precellStart, precellE
 								}
 								
 								rrr = randwgt.uniform(0,1) // Sample for gap junctions
-								if (rrr<0.08 && precellType==3 && postcellType==3){
+								if (rrr<0.08 && (precellType==3 && postcellType==3 )){
 									gap_vec = new Vector()
 									gap_vec.append(postgid)
 									gap_vec.append(conns2make.x[r])
@@ -501,7 +501,7 @@ proc makeConnections () {local precellType, postcellType, precellStart, precellE
 									synWeightrecip = cellType[postcellType].wgtConns.x[precellType] // swap the pre and post
 									
 									thiswgt = 100
-									while(thiswgt>2.77*synWeightrecip || thiswgt < 0){
+									while(thiswgt>2*synWeightrecip || thiswgt < 0){
 										thiswgt = randwgt.normal(synWeightrecip,0.0000032)
 									}
 									
@@ -621,7 +621,7 @@ makerecipConnectionsFile()
 
 proc makerecipConnections(){local i localobj recipconnsfile, connsmat
 
-	numrows = 9401
+	numrows = 9928
 	numcols = 6
 	
 	recipconnsfile = new File()
@@ -645,7 +645,7 @@ makerecipConnections()
 
 proc makegapConnections(){local i,j,startid,stopid localobj gapconnsfile, gapconnsmat, quickopen
 
-	numrows = 2381
+	numrows = 1670
 	numcols = 4
 	
 	// Have host 0 amend the file to include unique synapse ids
@@ -669,7 +669,7 @@ proc makegapConnections(){local i,j,startid,stopid localobj gapconnsfile, gapcon
 		for i=startid,stopid{
 			counter = 0
 			for j=0,gapconnsmat.nrow-1{
-				
+					
 				if(gapconnsmat.x[j][0]==i){
 					gapconnsmat.x[j][2] = gapconnsmat.x[j][0]*(10^counter)
 					gapconnsmat.x[j][3] = j
@@ -698,11 +698,11 @@ proc makegapConnections(){local i,j,startid,stopid localobj gapconnsfile, gapcon
 	// At this point, connsmat exists on every machine. Now we just need to attempt to connect them.
 	for i=0,gapconnsmat.nrow-1{
 		if (pc.gid_exists(gapconnsmat.x[i][1])){
-			//print "connecting ", gapconnsmat.x[i][0], "to ", gapconnsmat.x[i][1], "on host ", pc.id
+			print "connecting ", gapconnsmat.x[i][0], "to ", gapconnsmat.x[i][1], "on host ", pc.id
 			par_gap_create1(gapconnsmat.x[i][1],gapconnsmat.x[i][2],gapconnsmat.x[i][3])
 		}
 		if (pc.gid_exists(gapconnsmat.x[i][0])){
-			//print "connecting ", gapconnsmat.x[i][0], "to ", gapconnsmat.x[i][1], "on host ", pc.id
+			print "connecting ", gapconnsmat.x[i][0], "to ", gapconnsmat.x[i][1], "on host ", pc.id
 			par_gap_create1(gapconnsmat.x[i][0],gapconnsmat.x[i][3],gapconnsmat.x[i][2])
 		}
 	}
