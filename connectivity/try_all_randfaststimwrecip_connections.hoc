@@ -698,11 +698,11 @@ proc makegapConnections(){local i,j,startid,stopid localobj gapconnsfile, gapcon
 	// At this point, connsmat exists on every machine. Now we just need to attempt to connect them.
 	for i=0,gapconnsmat.nrow-1{
 		if (pc.gid_exists(gapconnsmat.x[i][1])){
-			print "connecting ", gapconnsmat.x[i][0], "to ", gapconnsmat.x[i][1], "on host ", pc.id
+			//print "connecting ", gapconnsmat.x[i][0], "to ", gapconnsmat.x[i][1], "on host ", pc.id
 			par_gap_create1(gapconnsmat.x[i][1],gapconnsmat.x[i][2],gapconnsmat.x[i][3])
 		}
 		if (pc.gid_exists(gapconnsmat.x[i][0])){
-			print "connecting ", gapconnsmat.x[i][0], "to ", gapconnsmat.x[i][1], "on host ", pc.id
+			//print "connecting ", gapconnsmat.x[i][0], "to ", gapconnsmat.x[i][1], "on host ", pc.id
 			par_gap_create1(gapconnsmat.x[i][0],gapconnsmat.x[i][3],gapconnsmat.x[i][2])
 		}
 	}

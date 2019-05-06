@@ -1,30 +1,32 @@
-begintemplate fengpvbasketcell
-public init, connect_sections, size_sections, append_sections
+begintemplate chandelierWB
+public init, connect_sections, size_sections, append_sections, define_synapses
 public mechinit, insert_mechs, set_biophys, get_root
 public  pre_list, connect_pre, is_art, is_connected, gid, randi
 public soma, dend
-public all, basal_list, apical_list, soma_list, axon_list, dendrite_list
-public x, y, z, position, myroot, Vrest
-public NumSoma, NumApical, NumBasal, NumAxon
+public all, basal_list, apical_list, soma_list, dendrite_list
+public x, y, z, position, myroot, myrootsec, Vrest
+public NumSoma, NumApical, NumBasal, NumAxon, NumDend
+public gna12_ais_max, gna16_ais_max, gkv_axon, gNav_soma, gKdr_soma, gKdr_dend, gNav_dend
 
 // strings
-strdef myroot
+strdef myroot, myname
 
 // objects
-objref syn, pre_list, templist, rootlist, this, rr, rv
+objref syn, pre_list, templist, rootlist, myrootsec, this, rr, rv
 
 // external variables
-external numCellTypes, cellType
+//external numCellTypes, cellType
 
 // create the sections[segments]
-NumSoma = 1
-NumDend = 1
-create soma[NumSoma], dend[NumDend]
+myname = "fengpvbasketcell"
+
+create soma, dend
+
 
 
 proc init() {
-	gid = $1
-	randi = $2
+	//gid = $1
+	//randi = $2
 	
 	// morphology
 	connect_sections()	// local fcn: connect soma, dendrites, axon initial segment
@@ -32,7 +34,7 @@ proc init() {
 	define_shape()		// builtin fcn: fill in 3d info for sections defined by only L and diam, translate 3d points for consistency with their connections 
   	append_sections()	// local fcn: append all sections to the section list
 	set_nseg()			// local fcn: set the number of segments in each section
-	get_root()			// local fcn: perform morphology checks
+	//get_root()			// local fcn: perform morphology checks
 	
 	// electrophysiology
 	mechinit()			// local fcn: set values for max conductances and reversal potentials of ion channels and other ephys parameters that are subject to fitting
@@ -41,7 +43,7 @@ proc init() {
 
 	// synapses
 	pre_list = new List() // define a list for the presynaptic connections	
-	define_synapses($3)	// local fcn: define all possible synaptic connections received by this cell
+	//define_synapses($3)	// local fcn: define all possible synaptic connections received by this cell
 }
 
 
@@ -110,17 +112,17 @@ proc mechinit() {
 
 
 	// reversal potentials in mV
-	ekval = -80
-	enaval = 45
+	ekval = -90
+	enaval = 55
 	
 	eleakval = Vrest
 
 	// max ion channel conductances in mho/cm2
-	gNa_soma = 0.035
-	gNa_dend = 0.010
+	gNa_soma = 0.05
+	gNa_dend = 0.05
 
-	gK_soma = 0.008
-	gK_dend = 0.003
+	gK_soma = 0.01
+	gK_dend = 0.01
 }
 
 proc insert_mechs() {
@@ -130,11 +132,11 @@ proc insert_mechs() {
 		Ra = RaSoma
 		cm = CmSoma
 		
-		insert nainter
-		gnabar_nainter = gNa_soma
+		insert nainter_WB
+		gnabar_nainter_WB = gNa_soma
 		
-		insert kdrinter
-		gkdrbar_kdrinter = gK_soma
+		insert kdrinter_WB
+		gkdrbar_kdrinter_WB = gK_soma
 		
 		insert leakinter
 		glbar_inter_leakinter = 1/RmSoma
@@ -144,11 +146,11 @@ proc insert_mechs() {
 		Ra = RaDend
 		cm = CmSoma
 		
-		insert nainter
-		gnabar_nainter = gNa_dend
+		insert nainter_WB
+		gnabar_nainter_WB = gNa_dend
 		
-		insert kdrinter
-		gkdrbar_kdrinter = gK_dend
+		insert kdrinter_WB
+		gkdrbar_kdrinter_WB = gK_dend
 		
 		insert leakinter
 		glbar_inter_leakinter = 1/RmDend
@@ -167,10 +169,10 @@ proc set_chanparams() {
 		
 	}
 }
-
+/*
 
 	proc connect_pre() {  // $o1 target point process, $o2 returned NetCon
-	soma $o2 = new NetCon (&v(1), $o1)
+	soma[0] $o2 = new NetCon (&v(1), $o1)
 			$o2.threshold = -10
 
 	}
@@ -213,7 +215,7 @@ proc define_synapses() {
 	ind = $1
 	i = 0
 
-	access soma
+	access soma[0]
 	{distance()}
 
 	for celltype = 0, numCellTypes-1 {
@@ -252,6 +254,7 @@ proc define_synapses() {
 		pre_list.append(templist)
 		findme = 1
 	}
+	
 }
-
-endtemplate fengpvbasketcell
+*/
+endtemplate chandelierWB
